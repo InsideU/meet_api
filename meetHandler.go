@@ -96,7 +96,7 @@ func CheckTime(starttime string, endtime string) []Meeting {
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	filter := bson.D{
 		{Key: "starttime", Value: bson.M{"$match1": starttime}},
-		{key: "endtime", Value: bson.M{"$match2": endtime}},
+		{Key: "endtime", Value: bson.M{"$match2": endtime}},
 	}
 	cursor, _ := collection.Find(ctx, filter)
 
@@ -114,8 +114,8 @@ func CheckTime(starttime string, endtime string) []Meeting {
 func GetTimesMeeting(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("contet-type", "application/json")
 
-	starttime := request.URL.Query()["start"][0]
-	endtime := request.URL.Query()["end"][0]
+	starttime := req.URL.Query()["start"][0]
+	endtime := req.URL.Query()["end"][0]
 
 	timing := CheckTime(starttime, endtime)
 	json.NewEncoder(res).Encode(timing)
