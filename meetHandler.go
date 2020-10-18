@@ -39,20 +39,21 @@ func meetHandler(res http.ResponseWriter, req *http.Request) {
 func BusyUser(users Meeting) error {
 
 	collection := client.Database("zoom").Collection("meets")
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	var meet Meeting
 
 	for _, user := range users.Participants {
 		if user.Rsvp == "YES" {
 			filter := bson.M{
-				"endtime": bson.M{"$gt": string(time.Now().Format(time.RFC3339))},
+				"endtime": bson.M{"$match": string(time.Now().Format(time.RFC3339))},
 			}
-		}
-		cursor, _ := collection.Find(ctx, filter)
-		for cursor.Next(ctx) {
-			cursor.Decode(&meet)
-			if (users.Starttime >= meet.Starttime && users.Starttime <= meet.Endtime) || (users.Endtime >= meet.Starttime && users.Endtime <= meet.Endtime) {
-				return errors.New("Clased Meeting")
+
+			cursor, _ := collection.Find(ctx, filter)
+			for cursor.Next(ctx) {
+				cursor.Decode(&meet)
+				if (users.Starttime >= meet.Starttime && users.Starttime <= meet.Endtime) || (users.Endtime >= meet.Starttime && users.Endtime <= meet.Endtime) {
+					return errors.New("Clased Meeting")
+				}
 			}
 		}
 	}
@@ -87,5 +88,36 @@ func createMeeting(res http.ResponseWriter, req *http.Request) {
 	result, _ := collection.InsertOne(ctx, meet)
 	meet.ID = result.InsertedID.(primitive.ObjectID)
 	json.NewEncoder(res).Encode(meet)
+
+}
+
+func CheckTime(starttime string, endtime string) []Meeting {
+	collection := client.Database("zoom").collection("meetings")
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	filter := bson.D{
+		{Key: "starttime", Value: bson.M{"$match1": starttime}},
+		{key: "endtime", Value: bson.M{"$match2": endtime}},
+	}
+	cursor, _ := collection.Find(ctx, filter)
+
+	var return_type []Meeting
+
+	var meet Meeting
+	for cursor.Next(ctx) {
+		cursor.Decode(&meet)
+		return_type = append(return_type, meet)
+	}
+	return return_type
+
+}
+
+func GetTimesMeeting(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("contet-type", "application/json")
+
+	starttime := request.URL.Query()["start"][0]
+	endtime := request.URL.Query()["end"][0]
+
+	timing := CheckTime(starttime, endtime)
+	json.NewEncoder(res).Encode(timing)
 
 }
