@@ -21,5 +21,6 @@ func main() {
 
 	http.HandleFunc("/meetings", meetHandler)
 	http.HandleFunc("/meeting/", idHandler)
+
 	http.ListenAndServe(":3000", nil)
 }

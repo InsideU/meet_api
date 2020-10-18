@@ -9,6 +9,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Meeting struct {
@@ -31,9 +32,16 @@ func meetHandler(res http.ResponseWriter, req *http.Request) {
 	if req.Method == "POST" {
 		createMeeting(res, req)
 	}
-	if req.Method == "GET" {
+	participant, err := req.URL.Query("patricipant")
+
+	if req.Method == "GET" && err != nil {
 		GetTimesMeeting(res, req)
 	}
+	if req.Method == "GET" && err == nil {
+		participant(res, req)
+
+	}
+
 }
 
 func BusyUser(users Meeting) error {
@@ -67,7 +75,7 @@ func createMeeting(res http.ResponseWriter, req *http.Request) {
 
 	if meet.Starttime < meet.Creationtime {
 		res.WriteHeader(http.StatusBadRequest)
-		res.Write([]byte(`{"error" : "true"},{"message" : "Invalid Starttime"}`))
+		res.Write([]byte(`{"error" : "true","message" : "Invalid Starttime"}`))
 		return
 	}
 
@@ -120,4 +128,40 @@ func GetTimesMeeting(res http.ResponseWriter, req *http.Request) {
 	timing := CheckTime(starttime, endtime)
 	json.NewEncoder(res).Encode(timing)
 
+}
+
+func Check(email string) []Meeting {
+	collection := client.Database("appointy").Collection("meetings")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	opts := options.Find()
+	opts.SetSort(bson.D{{Key: "starttime", Value: 1}})
+	opts.Skip = &skip
+	opts.Limit = &limit
+	cursor, _ := collection.Find(ctx, bson.D{
+		{Key: "participants.email", Value: email},
+	}, opts)
+	var meetingsreturn []Meeting
+	var meet Meeting
+	for cursor.Next(ctx) {
+		cursor.Decode(&meet)
+		meetingsreturn = append(meetingsreturn, meet)
+	}
+	return meetingsreturn
+}
+
+func participant(res http.ResponseWriter, req *http.Request) {
+	if res.Method == "GET" {
+		res.Header().Set("content-type", "application/json")
+		email := request.URL.Query()["participant"][0]
+		participantmeetings := Check(email)
+		if len(participantmeetings) == 0 {
+			response.WriteHeader(http.StatusBadRequest)
+			response.Write([]byte(`{ "message": "Participant not present" }`))
+			return
+		}
+		json.NewEncoder(response).Encode(participantmeetings)
+		skip = Defaultskip
+		limit = Defaultlimit
+	}
 }
