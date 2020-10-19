@@ -5,12 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+var Defaultskip = int64(0)
+
+var Defaultlimit = int64(10)
+
+var skip = Defaultskip
+var limit = Defaultlimit
 
 type Meeting struct {
 	ID           primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
@@ -30,7 +38,7 @@ type participant struct {
 func meetHandler(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method == "POST" {
-		createMeeting(res, req)   //checking if post request call createMeeting
+		createMeeting(res, req) //checking if post request call createMeeting
 	}
 	_, err := req.URL.Query()["participant"]
 
@@ -38,7 +46,7 @@ func meetHandler(res http.ResponseWriter, req *http.Request) {
 		GetTimesMeeting(res, req)
 	}
 	if req.Method == "GET" && err == true {
-		parti(res, req) 											// if URL included participant query then fetch the participants details
+		parti(res, req) // if URL included participant query then fetch the participants details
 
 	}
 
@@ -106,6 +114,10 @@ func createMeeting(res http.ResponseWriter, req *http.Request) {
 func CheckTime(starttime string, endtime string) []Meeting {
 	collection := client.Database("zoom").collection("meetings")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	opts := options.Find()
+	opts.SetSort(bson.D{{Key: "starttime", Value: 1}})
+	opts.Skip = &skip
+	opts.Limit = &limit
 	filter := bson.D{
 		{Key: "starttime", Value: bson.M{"$match1": starttime}},
 		{Key: "endtime", Value: bson.M{"$match2": endtime}},
@@ -128,7 +140,12 @@ func GetTimesMeeting(res http.ResponseWriter, req *http.Request) {
 
 	starttime := req.URL.Query()["start"][0]
 	endtime := req.URL.Query()["end"][0]
-
+	if len(req.URL.Query()["limit"]) != 0 {
+		limit, _ = strconv.ParseInt(req.URL.Query()["limit"][0], 0, 64)
+	}
+	if len(req.URL.Query()["ofset"]) != 0 {
+		skip, _ = strconv.ParseInt(req.URL.Query()["offset"][0], 0, 64)
+	}
 	timing := CheckTime(starttime, endtime)
 	json.NewEncoder(res).Encode(timing)
 
@@ -153,11 +170,18 @@ func Check(email string) []Meeting {
 	}
 	return meetingsreturn
 }
-//fetching the participant email address from the url query and then calling the above function 
+
+//fetching the participant email address from the url query and then calling the above function
 
 func parti(res http.ResponseWriter, req *http.Request) {
 	if req.Method == "GET" {
 		res.Header().Set("content-type", "application/json")
+		if len(req.URL.Query()["limit"]) != 0 {
+			limit, _ = strconv.ParseInt(req.URL.Query()["limit"][0], 0, 64)
+		}
+		if len(req.URL.Query()["ofset"]) != 0 {
+			skip, _ = strconv.ParseInt(req.URL.Query()["offset"][0], 0, 64)
+		}
 		email := req.URL.Query()["participant"][0]
 		participantmeetings := Check(email)
 		if len(participantmeetings) == 0 {
