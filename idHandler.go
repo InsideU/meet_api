@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// checks the exsistence of the user in the databse using the unique hashed id
 func checkmeet(id primitive.ObjectID) (Meeting, error) {
 	var meet Meeting
 	collection := client.Database("zoom").Collection("meets")
@@ -23,6 +24,7 @@ func checkmeet(id primitive.ObjectID) (Meeting, error) {
 	return meet, err
 }
 
+// Fetch the details of the user using the id of the user
 func idHandler(res http.ResponseWriter, req *http.Request) {
 	if req.Method == "GET" {
 		res.Header().Set("content-type", "application/json")

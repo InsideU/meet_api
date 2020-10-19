@@ -30,20 +30,21 @@ type participant struct {
 func meetHandler(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method == "POST" {
-		createMeeting(res, req)
+		createMeeting(res, req)   //checking if post request call createMeeting
 	}
-	participantss, err := req.URL.Query()["participant"]
+	_, err := req.URL.Query()["participant"]
 
-	if req.Method == "GET" && err != false {
+	if req.Method == "GET" && err != false { //if participant is not there in url then call getTimemeeting handler
 		GetTimesMeeting(res, req)
 	}
 	if req.Method == "GET" && err == true {
-		parti(res, req)
+		parti(res, req) 											// if URL included participant query then fetch the participants details
 
 	}
 
 }
 
+//check wheather the user has some already scheduled meeting at the time when scheduling other meet
 func BusyUser(users Meeting) error {
 
 	collection := client.Database("zoom").Collection("meets")
@@ -67,6 +68,8 @@ func BusyUser(users Meeting) error {
 	}
 	return nil
 }
+
+//Creating the new meeting for the user and also checking for his available meeting using the busy user function
 
 func createMeeting(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("contet-type", "application/json")
@@ -99,6 +102,7 @@ func createMeeting(res http.ResponseWriter, req *http.Request) {
 
 }
 
+//checking the validy of the time start and end time for the meeting
 func CheckTime(starttime string, endtime string) []Meeting {
 	collection := client.Database("zoom").collection("meetings")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
@@ -130,8 +134,9 @@ func GetTimesMeeting(res http.ResponseWriter, req *http.Request) {
 
 }
 
+//fetching the details of the user after checking the email from the database
 func Check(email string) []Meeting {
-	collection := client.Database("appointy").Collection("meetings")
+	collection := client.Database("zoom").Collection("meets") // connectiong to the database
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	opts := options.Find()
@@ -148,6 +153,7 @@ func Check(email string) []Meeting {
 	}
 	return meetingsreturn
 }
+//fetching the participant email address from the url query and then calling the above function 
 
 func parti(res http.ResponseWriter, req *http.Request) {
 	if req.Method == "GET" {
@@ -159,7 +165,7 @@ func parti(res http.ResponseWriter, req *http.Request) {
 			res.Write([]byte(`{ "message": "Participant not present" }`))
 			return
 		}
-		json.NewEncoder(res).Encode(participantmeetings)
+		json.NewEncoder(res).Encode(participantmeetings) //Encoding the json response
 
 	}
 }
