@@ -32,13 +32,13 @@ func meetHandler(res http.ResponseWriter, req *http.Request) {
 	if req.Method == "POST" {
 		createMeeting(res, req)
 	}
-	participant, err := req.URL.Query("patricipant")
+	participantss, err := req.URL.Query()["participant"]
 
-	if req.Method == "GET" && err != nil {
+	if req.Method == "GET" && err != false {
 		GetTimesMeeting(res, req)
 	}
-	if req.Method == "GET" && err == nil {
-		participant(res, req)
+	if req.Method == "GET" && err == true {
+		parti(res, req)
 
 	}
 
@@ -136,8 +136,7 @@ func Check(email string) []Meeting {
 	defer cancel()
 	opts := options.Find()
 	opts.SetSort(bson.D{{Key: "starttime", Value: 1}})
-	opts.Skip = &skip
-	opts.Limit = &limit
+
 	cursor, _ := collection.Find(ctx, bson.D{
 		{Key: "participants.email", Value: email},
 	}, opts)
@@ -150,18 +149,17 @@ func Check(email string) []Meeting {
 	return meetingsreturn
 }
 
-func participant(res http.ResponseWriter, req *http.Request) {
-	if res.Method == "GET" {
+func parti(res http.ResponseWriter, req *http.Request) {
+	if req.Method == "GET" {
 		res.Header().Set("content-type", "application/json")
-		email := request.URL.Query()["participant"][0]
+		email := req.URL.Query()["participant"][0]
 		participantmeetings := Check(email)
 		if len(participantmeetings) == 0 {
-			response.WriteHeader(http.StatusBadRequest)
-			response.Write([]byte(`{ "message": "Participant not present" }`))
+			res.WriteHeader(http.StatusBadRequest)
+			res.Write([]byte(`{ "message": "Participant not present" }`))
 			return
 		}
-		json.NewEncoder(response).Encode(participantmeetings)
-		skip = Defaultskip
-		limit = Defaultlimit
+		json.NewEncoder(res).Encode(participantmeetings)
+
 	}
 }
